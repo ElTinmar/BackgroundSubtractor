@@ -1,0 +1,11 @@
+name: BackgroundSubtractor
+channels:
+- conda-forge
+dependencies:
+- python == 3.8.16
+- pyqt
+- ipython
+- tqdm
+- pip
+- pip:
+  - git+https://github.com/ElTinmar/video_tools.git@main
