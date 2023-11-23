@@ -7,7 +7,6 @@ from image_tools import im2single, im2gray, im2uint8
 import argparse
 from tqdm import tqdm
 
-# TODO polarity arguments seems to not work as intended
 # TODO dynamic background mp seems to not update properly  
 # TODO dynamic background mp error at the beginning  
 # data = image_store.get_data().transpose((1,2,0))
@@ -49,11 +48,21 @@ def subtract_background(
     video_writer.close()
     video_reader.join()
 
+def polarity_from_str(polstr: str) -> Polarity:
+
+    if polstr == "DARK_ON_BRIGHT":
+        pol = Polarity.DARK_ON_BRIGHT
+    elif polstr == "BRIGHT_ON_DARK":
+        pol = Polarity.BRIGHT_ON_DARK
+    else:
+        raise ValueError("Unknown polarity: " + polstr)
+    return pol
 
 def image_subtraction(args):
 
+    pol = polarity_from_str(args.polarity)
     bckg_subtractor = BackroundImage(
-        polarity = args.polarity,
+        polarity = pol,
         image_file_name = args.background_image
     )
     bckg_subtractor.initialize()
@@ -64,8 +73,9 @@ def static_subtraction(args):
 
     video_reader = OpenCV_VideoReader()
     video_reader.open_file(args.input_video)
+    pol = polarity_from_str(args.polarity)
     bckg_subtractor = StaticBackground(
-        polarity = args.polarity,    
+        polarity = pol,    
         video_reader = video_reader,
         num_sample_frames = args.num_sample_frames
     )
@@ -75,13 +85,15 @@ def static_subtraction(args):
 
 def dynamic_subtraction(args):
     
+    pol = polarity_from_str(args.polarity)
+
     if args.mp:
         video_reader = Buffered_OpenCV_VideoReader()
         video_reader.open_file(args.input_video)
         height, width = video_reader.get_height(), video_reader.get_width() 
 
         bckg_subtractor = DynamicBackgroundMP(
-            polarity = args.polarity,    
+            polarity = pol,    
             width = width,
             height = height,
             num_images = args.num_sample_frames,
@@ -90,7 +102,7 @@ def dynamic_subtraction(args):
 
     else:
         bckg_subtractor = DynamicBackground(
-            polarity = args.polarity,    
+            polarity = pol,    
             num_sample_frames = args.num_sample_frames,
             sample_every_n_frames = args.freq
         )
@@ -104,11 +116,11 @@ subparsers = parser.add_subparsers(help='background subtraction methods')
 # polarity
 parser.add_argument(
     "-p", "--polarity", 
-    default = Polarity.DARK_ON_BRIGHT,
-    const = Polarity.DARK_ON_BRIGHT,
+    default = "DARK_ON_BRIGHT",
+    const = "DARK_ON_BRIGHT",
     nargs = '?',
-    type = Polarity,
-    choices = list(Polarity),
+    type = str,
+    choices = ["DARK_ON_BRIGHT", "BRIGHT_ON_DARK"],
     help = "fish to background polarity, default: %(default)s"
 )
 
