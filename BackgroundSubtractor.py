@@ -9,6 +9,9 @@ from tqdm import tqdm
 
 # TODO polarity arguments seems to not work as intended
 # TODO dynamic background mp seems to not update properly  
+# TODO dynamic background mp error at the beginning  
+# data = image_store.get_data().transpose((1,2,0))
+#    AttributeError: 'NoneType' object has no attribute 'transpose'
    
 def subtract_background(
         input_video: str, 
