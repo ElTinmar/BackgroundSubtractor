@@ -1,11 +1,15 @@
 from video_tools import (
     Polarity, BackgroundSubtractor,
     BackroundImage, StaticBackground, DynamicBackground,
-    DynamicBackgroundMP, Buffered_OpenCV_VideoReader, OpenCV_VideoWriter
+    DynamicBackgroundMP, OpenCV_VideoReader, Buffered_OpenCV_VideoReader, OpenCV_VideoWriter
 )
+from image_tools import im2single, im2gray, im2uint8
 import argparse
 from tqdm import tqdm
 
+# TODO polarity arguments seems to not work as intended
+# TODO dynamic background mp seems to not update properly  
+   
 def subtract_background(
         input_video: str, 
         output_video: str, 
@@ -14,6 +18,7 @@ def subtract_background(
 
     video_reader = Buffered_OpenCV_VideoReader()
     video_reader.open_file(input_video)
+    video_reader.start()
     height = video_reader.get_height()
     width = video_reader.get_width()
     fps = video_reader.get_fps()  
@@ -23,19 +28,27 @@ def subtract_background(
         height=height, 
         width=width, 
         fps=fps, 
-        filename=output_video
+        filename=output_video,
+        fourcc='MJPG'
     )
 
     for i in tqdm(range(num_frames)):
-        (rval, frame) = video_reader.read_frame()
+        (rval, frame) = video_reader.next_frame()
         if not rval:
             raise RuntimeError('VideoReader was unable to read the whole video')
-        frame_sub = bckg_subtractor.subtract_background(frame)
-        video_writer.write_frame(frame_sub)
+        frame_gray = im2single(im2gray(frame))
+        frame_sub = bckg_subtractor.subtract_background(frame_gray)
+        frame_sub[frame_sub<0] = 0
+        frame_sub[frame_sub>1] = 1
+        movie_frame = im2uint8(frame_sub)
+        video_writer.write_frame(movie_frame)
 
     video_writer.close()
+    video_reader.join()
+
 
 def image_subtraction(args):
+
     bckg_subtractor = BackroundImage(
         polarity = args.polarity,
         image_file_name = args.background_image
@@ -43,8 +56,10 @@ def image_subtraction(args):
     bckg_subtractor.initialize()
     subtract_background(args.input_video, args.output_video, bckg_subtractor)
 
+
 def static_subtraction(args):
-    video_reader = Buffered_OpenCV_VideoReader()
+
+    video_reader = OpenCV_VideoReader()
     video_reader.open_file(args.input_video)
     bckg_subtractor = StaticBackground(
         polarity = args.polarity,    
@@ -53,6 +68,7 @@ def static_subtraction(args):
     )
     bckg_subtractor.initialize()
     subtract_background(args.input_video, args.output_video, bckg_subtractor)
+
 
 def dynamic_subtraction(args):
     
@@ -65,8 +81,8 @@ def dynamic_subtraction(args):
             polarity = args.polarity,    
             width = width,
             height = height,
-            num_sample_frames = args.num_sample_frames,
-            sample_every_n_frames = args.freq
+            num_images = args.num_sample_frames,
+            every_n_image = args.freq
         )
 
     else:
@@ -85,8 +101,8 @@ subparsers = parser.add_subparsers(help='background subtraction methods')
 # polarity
 parser.add_argument(
     "-p", "--polarity", 
-    default = Polarity.BRIGHT_ON_DARK,
-    const = Polarity.BRIGHT_ON_DARK,
+    default = Polarity.DARK_ON_BRIGHT,
+    const = Polarity.DARK_ON_BRIGHT,
     nargs = '?',
     type = Polarity,
     choices = list(Polarity),
