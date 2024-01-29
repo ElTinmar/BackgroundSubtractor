@@ -1,6 +1,6 @@
 from video_tools import (
     Polarity, BackgroundSubtractor,
-    BackroundImage, StaticBackground, DynamicBackground,
+    BackroundImage, StaticBackground, DynamicBackground, InpaintBackground,
     DynamicBackgroundMP, OpenCV_VideoReader, Buffered_OpenCV_VideoReader, OpenCV_VideoWriter
 )
 from image_tools import im2single, im2gray, im2uint8
@@ -82,6 +82,19 @@ def static_subtraction(args):
     bckg_subtractor.initialize()
     subtract_background(args.input_video, args.output_video, bckg_subtractor)
 
+def inpaint_subtraction(args):
+    # TODO parse options for inpaint background 
+
+    video_reader = OpenCV_VideoReader()
+    video_reader.open_file(args.input_video)
+    pol = polarity_from_str(args.polarity)
+    bckg_subtractor = InpaintBackground(
+        polarity = pol,    
+        video_reader = video_reader,
+        frame_num = 0,
+    )
+    bckg_subtractor.initialize()
+    subtract_background(args.input_video, args.output_video, bckg_subtractor)
 
 def dynamic_subtraction(args):
     
@@ -138,6 +151,7 @@ parser.add_argument(
     help = "path to output, background subtracted video file"
 )
 
+# parser image
 parser_image = subparsers.add_parser('image', help='subtract a fixed image to all frames')
 parser_image.add_argument(
     "background_image",
@@ -146,12 +160,22 @@ parser_image.add_argument(
 )
 parser_image.set_defaults(func=image_subtraction)
 
-
+# parser static
 parser_static = subparsers.add_parser('static', help='compute a static background image from video')
 parser_static.add_argument(
     "-n", "--num_sample_frames",
     type = int,
     help = "number of frames to sample to create background",
+    required = True
+)
+parser_static.set_defaults(func=static_subtraction)
+
+# parser inpaint
+parser_inpaint = subparsers.add_parser('inpaint', help='use inpainting with manual ROI selection to compute background')
+parser_inpaint.add_argument(
+    "-f", "--frame_num",
+    type = int,
+    help = "frames to inpaint to create background",
     required = True
 )
 parser_static.set_defaults(func=static_subtraction)
