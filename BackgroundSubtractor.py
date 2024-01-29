@@ -68,7 +68,6 @@ def image_subtraction(args):
     bckg_subtractor.initialize()
     subtract_background(args.input_video, args.output_video, bckg_subtractor)
 
-
 def static_subtraction(args):
 
     video_reader = OpenCV_VideoReader()
@@ -178,7 +177,7 @@ parser_inpaint.add_argument(
     help = "frames to inpaint to create background",
     required = True
 )
-parser_static.set_defaults(func=static_subtraction)
+parser_inpaint.set_defaults(func=inpaint_subtraction)
 
 # Dynamic backgroup
 parser_dynamic = subparsers.add_parser('dynamic', help='dynamically compute background from video')
