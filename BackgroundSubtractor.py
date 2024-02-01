@@ -20,7 +20,6 @@ def subtract_background(
 
     video_reader = Buffered_OpenCV_VideoReader()
     video_reader.open_file(input_video)
-    video_reader.start()
     height = video_reader.get_height()
     width = video_reader.get_width()
     fps = video_reader.get_fps()  
